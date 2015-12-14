@@ -30,55 +30,89 @@ public class Parser {
 		else return null;
 	}
 
-	private ASTNode exprStat() throws Exception {
-		if(next.type == Type.Operator) {
-			match(Type.Operator);
-			ASTNode negativeNode = new ASTNode(new Token(Type.Operator,"-"));
-			negativeNode.addChild(new ASTNode(new Token(Type.Const,0)));
-			negativeNode.addChild(exprStat());
-			return negativeNode;
+	private ASTNode Expression() throws Exception {
+        ASTNode rootNode = Term();
+        while(next.type == Type.Plus||next.type == Type.Minus){
+            ASTNode leftNode = rootNode;
+
+            rootNode = new ASTNode(match(next.type));
+            ASTNode rightNode = Term();
+
+            rootNode.addChild(leftNode);
+            rootNode.addChild(rightNode);
+        }
+        return rootNode;
+    }
+
+    public ASTNode Term() throws Exception {
+        ASTNode rootNode = Factor();
+        while(next.type == Type.Operator && (next.text.equals("*") || next.text.equals("/"))){
+            ASTNode leftNode = rootNode;
+
+            rootNode = new ASTNode(match(next.type));
+            ASTNode rightNode = Factor();
+
+            rootNode.addChild(leftNode);
+            rootNode.addChild(rightNode);
+        }
+        return rootNode;
+    }
+
+    public ASTNode Factor() throws Exception {
+        if(next.type == Type.Operator && next.text.equals("+")){
+            match(Type.Operator);
+            return Factor();
+        }else if(next.type == Type.Operator && next.text.equals("-")){
+            ASTNode minusNode = new ASTNode(match(Type.Operator));
+            minusNode.addChild(new ASTNode(new Token(Type.Const,0)));
+            minusNode.addChild(Factor());
+            return minusNode;
+        }else return Component();
+    }
+
+	public ASTNode Component() throws Exception {
+		ASTNode rootNode = Atom();
+		if(next.type == Type.Power){
+            ASTNode leftNode = rootNode;
+			rootNode = new ASTNode(match(Type.Power));
+			ASTNode rightNode = Component();
+            rootNode.addChild(leftNode);
+            rootNode.addChild(rightNode);
 		}
-		boolean bracked = false;
-
-		if(next.type == Type.Lbracket){
-			bracked = true;
-			match(Type.Lbracket);
-		}
-
-		ASTNode exprNode = new ASTNode();
-
-		Token LNum = (next.type == Type.Var)?match(Type.Var):match(Type.Const);
-
-		if(next.type == Type.Operator){
-
-			ASTNode LNode = new ASTNode(LNum);
-			exprNode.addChild(LNode);
-
-			exprNode.token = match(Type.Operator);
-			exprNode.addChild(exprStat());
-		}else{
-			exprNode.token = LNum;
-		}
-		if(bracked){
-			match(Type.Rbracket);
-		}
-		if(next.type == Type.Operator){
-			ASTNode parent = new ASTNode(match(Type.Operator));
-			parent.addChild(exprNode);
-			parent.addChild(exprStat());
-			return parent;
-		}
-		return exprNode;
+        return rootNode;
 	}
 
-
+	public ASTNode Atom() throws Exception {
+		switch(next.type){
+			case Const :{
+				return new ASTNode(match(Type.Const));
+			}
+			case Var: {
+				return new ASTNode(match(Type.Var));
+			}
+			case Function:{
+				ASTNode functionNode = new ASTNode(match(Type.Function));
+				match(Type.Lbracket);
+				functionNode.addChild(Expression());
+				match(Type.Rbracket);
+				return functionNode;
+			}
+			case Lbracket:{
+				match(Type.Lbracket);
+				ASTNode node =  Expression();
+				match(Type.Rbracket);
+				return node;
+			}
+		}
+		return null;
+	}
 	private ASTNode rotStat() throws Exception {
 		match("rot");
 		ASTNode rotNode = new ASTNode(new Token(Type.Rot,"rot"));
 		ASTNode xprNode;
 
 		match("is");
-		ASTNode exprNode = exprStat();
+		ASTNode exprNode = Expression();
 		match(Type.Semicolon);
 
 		rotNode.addChild(exprNode);
@@ -92,11 +126,11 @@ public class Parser {
 		match("origin");
 		match("is");
 		match(Type.Lbracket);
-		originNode.addChild(exprStat());
+		originNode.addChild(Expression());
 
 
 		match(Type.Comma);
-		originNode.addChild(exprStat());
+		originNode.addChild(Expression());
 		match(Type.Rbracket);
 		match(Type.Semicolon);
 
@@ -109,11 +143,9 @@ public class Parser {
 		match("scale");
 		match("is");
 		match(Type.Lbracket);
-		scaleNode.addChild(exprStat());
-
-
+		scaleNode.addChild(Expression());
 		match(Type.Comma);
-		scaleNode.addChild(exprStat());
+		scaleNode.addChild(Expression());
 		match(Type.Rbracket);
 		match(Type.Semicolon);
 
@@ -126,16 +158,16 @@ public class Parser {
 		match("for");
 		match("T");
 		match("from");
-		drawNode.addChild(exprStat());
+		drawNode.addChild(Expression());
 		match("to");
-		drawNode.addChild(exprStat());
+		drawNode.addChild(Expression());
 		match("step");
-		drawNode.addChild(exprStat());
+		drawNode.addChild(Expression());
 		match("draw");
 		match(Type.Lbracket);
-		drawNode.addChild(exprStat());
+		drawNode.addChild(Expression());
 		match(Type.Comma);
-		drawNode.addChild(exprStat());
+		drawNode.addChild(Expression());
 		match(Type.Rbracket);
 		match(Type.Semicolon);
 
@@ -147,7 +179,7 @@ public class Parser {
 		ASTNode funcNode = new ASTNode(match(Type.Function));
 
 		match(Type.Lbracket);
-		funcNode.addChild(exprStat());
+		funcNode.addChild(Expression());
 		match(Type.Rbracket);
 		match(Type.Semicolon);
 		return funcNode;

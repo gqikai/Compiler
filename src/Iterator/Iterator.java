@@ -1,4 +1,4 @@
-package Visitor;
+package Iterator;
 
 import java.util.ArrayList;
 
@@ -6,7 +6,7 @@ import AST.ASTNode;
 import Lexer.Type;
 import SymTab.SymTable;
 
-public class Visitor {
+public class Iterator {
 	public SymTable table = new SymTable();
 	public ArrayList<int[]> xPointsList = new ArrayList<int[]>();
 	public ArrayList<int[]> yPointsList = new ArrayList<int[]>();

@@ -18,5 +18,5 @@ public enum Type{
     Draw,
     Word,
     Function,
-    Root;
+    Root, Power, Add, Plus, Minus, Multiply, Devide;
 }
